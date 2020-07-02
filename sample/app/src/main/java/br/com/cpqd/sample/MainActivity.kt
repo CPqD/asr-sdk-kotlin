@@ -36,6 +36,16 @@ class MainActivity : AppCompatActivity(), View.OnClickListener {
                         toView = Intent(this, MicrophoneAudioActivity::class.java)
                     }
                 }
+                R.id.partialResult -> {
+                    if(checked) {
+                        toView = Intent(this, PartialResultActivity::class.java)
+                    }
+                }
+                R.id.continuousMode -> {
+                    if(checked) {
+                        toView = Intent(this, ContinuousModeActivity::class.java)
+                    }
+                }
             }
 
         }

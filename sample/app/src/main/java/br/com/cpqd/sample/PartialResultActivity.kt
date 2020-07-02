@@ -9,23 +9,23 @@ import android.view.View
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import br.com.cpqd.asr.SpeechRecognizePartialResult
 import br.com.cpqd.asr.SpeechRecognizer
 import br.com.cpqd.asr.SpeechRecognizerResult
 import br.com.cpqd.asr.audio.MicAudioSource
-import br.com.cpqd.asr.constant.ContentTypeConstants.Companion.TYPE_AUDIO_RAW
-import br.com.cpqd.asr.constant.ContentTypeConstants.Companion.TYPE_JSON
-import br.com.cpqd.asr.constant.ContentTypeConstants.Companion.TYPE_URI_LIST
+import br.com.cpqd.asr.constant.ContentTypeConstants
 import br.com.cpqd.asr.model.RecognitionConfig
-import kotlinx.android.synthetic.main.activity_microphone_audio.*
+import kotlinx.android.synthetic.main.activity_partial_result.*
+import java.lang.StringBuilder
 
-class MicrophoneAudioActivity : AppCompatActivity(), View.OnTouchListener, SpeechRecognizerResult {
+class PartialResultActivity : AppCompatActivity(), View.OnTouchListener, SpeechRecognizerResult,
+    SpeechRecognizePartialResult {
 
     private val PERMISSION_REQUEST_RECORD_AUDIO: Int = 1
 
-
     private val recognitionConfig: RecognitionConfig = RecognitionConfig.Builder()
-        .accept(TYPE_JSON)
-        .contentType(TYPE_URI_LIST)
+        .accept(ContentTypeConstants.TYPE_JSON)
+        .contentType(ContentTypeConstants.TYPE_URI_LIST)
         .waitEndMilis(2000)
         .noInputTimeoutMilis(20000)
         .build()
@@ -34,7 +34,7 @@ class MicrophoneAudioActivity : AppCompatActivity(), View.OnTouchListener, Speec
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_microphone_audio)
+        setContentView(R.layout.activity_partial_result)
 
         if (ContextCompat.checkSelfPermission(
                 this,
@@ -49,13 +49,16 @@ class MicrophoneAudioActivity : AppCompatActivity(), View.OnTouchListener, Speec
         }
 
         playMic.setOnTouchListener(this)
-
     }
+
+
 
     override fun onTouch(v: View?, event: MotionEvent?): Boolean {
         when(event?.action) {
             MotionEvent.ACTION_DOWN -> {
                 Toast.makeText(this, "Iniciando...", Toast.LENGTH_SHORT).show()
+
+                responseP.text = ""
 
                 audio = MicAudioSource(8000)
                 audio?.startRecording()
@@ -64,10 +67,12 @@ class MicrophoneAudioActivity : AppCompatActivity(), View.OnTouchListener, Speec
                     .serverURL("ws://10.10.0.101:8025/asr-server/asr")
                     .credentials("felipe", "felipe.cpqd")
                     .recognizerResult(this)
+                    .recognizerPartialResult(this)
                     .config(recognitionConfig, "builtin:slm/general")
                     .build()
 
-                audio?.let { speech.recognizer(it, TYPE_AUDIO_RAW) }
+                audio?.let { speech.recognizer(it, ContentTypeConstants.TYPE_AUDIO_RAW) }
+
 
                 return true
             }
@@ -84,7 +89,13 @@ class MicrophoneAudioActivity : AppCompatActivity(), View.OnTouchListener, Speec
 
     override fun onResult(result: String) {
         runOnUiThread {
-            responseMic.text = result
+            responseC.text = result
+        }
+    }
+
+    override fun onPartialResultResult(result: String) {
+        runOnUiThread {
+            responseP.text = result
         }
     }
 

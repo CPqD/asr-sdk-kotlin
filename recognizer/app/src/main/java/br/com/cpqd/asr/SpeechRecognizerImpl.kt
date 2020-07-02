@@ -34,6 +34,8 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
 
     private var lastPacket = false
 
+    private var continuousMode = false
+
     private val wss: WebSocket
 
     init {
@@ -48,10 +50,11 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
             .addListener(this)
             .addExtension(WebSocketExtension.PERMESSAGE_DEFLATE)
 
+        isContinuousModeEnable()
 
         thread(start = true, name = "WebSocketConnectionThread", isDaemon = true) {
             try {
-               wss.connect()
+                wss.connect()
             } catch (e: OpeningHandshakeException) {
                 val sl = e.statusLine
                 println("=== Status Line ===")
@@ -104,6 +107,8 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
     override fun onBinaryMessage(websocket: WebSocket?, binary: ByteArray?) {
         val responseMessage = AsrMessage(binary)
 
+        Log.d(TAG, responseMessage.toString())
+
         if (responseMessage.mMethod == "RESPONSE" && responseMessage.mHeader["Session-Status"] == "IDLE") {
             websocket?.sendBinary(startRecognition())
         }
@@ -111,33 +116,68 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
         if (responseMessage.mMethod == "RESPONSE" && responseMessage.mHeader["Session-Status"] == "LISTENING") {
 
             if (!isSending) {
+
                 isSending = true
-                thread(start = true, name = "SendAudioThread") {
+                thread(start = true, name = "SendAudioThread", isDaemon = true) {
                     while (!lastPacket) {
-                        if(query.size > 0) {
-                            if(query.first().mHeader["LastPacket"] == "true") lastPacket = true
+                        if (query.size > 0) {
+
+                            if (query.first().mHeader["LastPacket"] == "true") lastPacket = true
+
                             websocket?.sendBinary(query.first().toByteArray())
+
                             query.removeAt(0)
+
                         }
                     }
                 }
+
             }
+
         }
 
+
         if (responseMessage.mHeader.containsKey("Error-Code")) {
+
             Log.w(TAG, RecognitionError(responseMessage).toString())
             websocket?.sendBinary(AsrMessage(METHOD_RELEASE_SESSION).toByteArray())
             clear()
+
         }
 
-        if (responseMessage.mMethod == "RECOGNITION_RESULT") {
+
+        if (responseMessage.mMethod == "RECOGNITION_RESULT" && responseMessage.mHeader["Result-Status"] == "PROCESSING") {
+
+            responseMessage.mBody?.toString(NETWORK_CHARSET)?.let {
+                builder.recognizerPartialResult?.onPartialResultResult(
+                    Gson().fromJson(
+                        it,
+                        RecognitionResult::class.java
+                    ).getString()
+                )
+            }
+
+        }
+
+
+        if (responseMessage.mMethod == "RECOGNITION_RESULT" && responseMessage.mHeader["Result-Status"] == "RECOGNIZED") {
 
             responseMessage.mBody?.toString(NETWORK_CHARSET)?.let {
                 builder.recognizerResult?.onResult(
-                    Gson().fromJson(it, RecognitionResult::class.java).getString()
+                    Gson().fromJson(
+                        it,
+                        RecognitionResult::class.java
+                    ).getString()
                 )
             }
-            websocket?.sendBinary(AsrMessage(METHOD_RELEASE_SESSION).toByteArray())
+
+            if (!continuousMode)
+                websocket?.sendBinary(AsrMessage(METHOD_RELEASE_SESSION).toByteArray())
+
+            if (continuousMode && lastPacket) {
+                websocket?.sendBinary(AsrMessage(METHOD_RELEASE_SESSION).toByteArray())
+                Log.d(TAG, "Finalizando modo continuo")
+            }
         }
 
     }
@@ -227,6 +267,14 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
 
     private fun clear() {
         builder.recognizerResult?.onResult("")
+    }
+
+    private fun isContinuousModeEnable() {
+        if (builder.recognizerConfig.configMap()
+                .containsKey("decoder.continuousMode") && builder
+                .recognizerConfig.configMap()["decoder.continuousMode"] == "true"
+        )
+            continuousMode = true
     }
 
 }

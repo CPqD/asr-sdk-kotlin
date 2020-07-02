@@ -46,7 +46,7 @@ class FileAudioActivity : AppCompatActivity(), View.OnClickListener, SpeechRecog
             .config(recognitionConfig, "builtin:slm/general")
             .build()
 
-        val recognizer: Any = speech.recognizer(audio, TYPE_OCTET_STREAM)
+        speech.recognizer(audio, TYPE_OCTET_STREAM)
 
     }
 

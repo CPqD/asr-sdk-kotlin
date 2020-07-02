@@ -43,14 +43,24 @@ class MicAudioSource(sampleRate: Int) : AudioSource {
             RECORDER_AUDIO_FORMAT
         )
 
-        Log.d("bufferSize", minimumBufferSize.toString())
+        val recorderBufferSize = when (minimumBufferSize) {
+            AudioRecord.ERROR_BAD_VALUE -> {
+                4096
+            }
+            AudioRecord.ERROR -> {
+                4096
+            }
+            else -> {
+                minimumBufferSize
+            }
+        }
 
         recorder = AudioRecord(
             RECORDER_AUDIO_SOURCE,
             recorderSampleRate,
             RECORDER_NUMBER_OF_CHANNELS,
             RECORDER_AUDIO_FORMAT,
-            minimumBufferSize
+            recorderBufferSize
         )
     }
 
@@ -65,7 +75,6 @@ class MicAudioSource(sampleRate: Int) : AudioSource {
     fun startRecording() {
         if (!started) {
             try {
-                Log.d(TAG, "Gravação Iniciada")
                 recorder?.startRecording()
                 started = true
             } catch (e: IllegalStateException) {
@@ -76,7 +85,6 @@ class MicAudioSource(sampleRate: Int) : AudioSource {
 
     fun stopRecording() {
         try {
-            Log.d(TAG, "Gravação Terminada")
             recorder?.stop()
             stopped = true
         } catch (e: IllegalStateException) {
