@@ -1,10 +1,10 @@
 package br.com.cpqd.asr.model
 
-import br.com.cpqd.asr.asr_kotlin.exception.*
 import br.com.cpqd.asr.constant.CharsetConstants.Companion.NETWORK_CHARSET
 import br.com.cpqd.asr.constant.HeaderMethodConstants.Companion.METHOD_SEND_AUDIO
 import br.com.cpqd.asr.exception.*
-import org.junit.Assert.*
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.ByteArrayOutputStream
 
@@ -21,7 +21,7 @@ class AsrMessageTest {
 
     @Test(expected = HeaderMissingElementException::class)
     fun should_ThrowException_WhenFirstLineDontHaveThreeElements() {
-        var baos = ByteArrayOutputStream()
+        val baos = ByteArrayOutputStream()
         baos.write("2.3".toByteArray(NETWORK_CHARSET))
         baos.write(SPACE)
         baos.write("START_RECOGNITION".toByteArray(NETWORK_CHARSET))
@@ -33,7 +33,7 @@ class AsrMessageTest {
 
     @Test(expected = WrongProtocolException::class)
     fun should_ThrowException_WhenIncorrectProtocol(){
-        var baos = ByteArrayOutputStream()
+        val baos = ByteArrayOutputStream()
         baos.write("AAA".toByteArray(NETWORK_CHARSET))
         baos.write(SPACE)
         baos.write("2.3".toByteArray(NETWORK_CHARSET))
@@ -42,12 +42,12 @@ class AsrMessageTest {
         baos.write(CRLF)
         baos.write(CRLF)
 
-        var message = AsrMessage(baos.toByteArray())
+        AsrMessage(baos.toByteArray())
     }
 
     @Test(expected = WrongVersionException::class)
     fun should_ThrowException_WhenIncorrectVersion(){
-        var baos = ByteArrayOutputStream()
+        val baos = ByteArrayOutputStream()
         baos.write("ASR".toByteArray(NETWORK_CHARSET))
         baos.write(SPACE)
         baos.write("2.5".toByteArray(NETWORK_CHARSET))
@@ -56,12 +56,12 @@ class AsrMessageTest {
         baos.write(CRLF)
         baos.write(CRLF)
 
-        var message = AsrMessage(baos.toByteArray())
+        AsrMessage(baos.toByteArray())
     }
 
     @Test(expected = WrongMethodExcepetion::class)
     fun should_ThrowException_WhenIncorrectMethod(){
-        var baos = ByteArrayOutputStream()
+        val baos = ByteArrayOutputStream()
         baos.write("ASR".toByteArray(NETWORK_CHARSET))
         baos.write(SPACE)
         baos.write("2.3".toByteArray(NETWORK_CHARSET))
@@ -70,12 +70,12 @@ class AsrMessageTest {
         baos.write(CRLF)
         baos.write(CRLF)
 
-        var message = AsrMessage(baos.toByteArray())
+        AsrMessage(baos.toByteArray())
     }
 
     @Test(expected = BodySizeMismatchExcepetion::class)
     fun should_ThrowException_WhenContentLengthAndBodySizeAreIncompatible(){
-        var baos = ByteArrayOutputStream()
+        val baos = ByteArrayOutputStream()
         baos.write("ASR".toByteArray(NETWORK_CHARSET))
         baos.write(SPACE)
         baos.write("2.3".toByteArray(NETWORK_CHARSET))
@@ -123,12 +123,12 @@ class AsrMessageTest {
 
         baos.write("builtin:slm/general".toByteArray(NETWORK_CHARSET))
 
-        var message = AsrMessage(baos.toByteArray())
+        AsrMessage(baos.toByteArray())
     }
 
     @Test
     fun testOneLineHeader(){
-        var baos = ByteArrayOutputStream()
+        val baos = ByteArrayOutputStream()
         baos.write("ASR".toByteArray(NETWORK_CHARSET))
         baos.write(SPACE)
         baos.write("2.3".toByteArray(NETWORK_CHARSET))
@@ -136,7 +136,7 @@ class AsrMessageTest {
         baos.write("START_RECOGNITION".toByteArray(NETWORK_CHARSET))
         baos.write(CRLF)
         baos.write(CRLF)
-        var message = AsrMessage(baos.toByteArray())
+        val message = AsrMessage(baos.toByteArray())
 
         assertTrue(message.mHeader.isEmpty())
         assertNull(message.mBody)
@@ -145,7 +145,11 @@ class AsrMessageTest {
 
     @Test
     fun testSecondaryConstructor(){
-        var message = AsrMessage(METHOD_SEND_AUDIO, mutableMapOf("Accept" to "application/json"), ByteArray(0))
+        val message = AsrMessage(
+            METHOD_SEND_AUDIO,
+            mutableMapOf("Accept" to "application/json"),
+            ByteArray(0)
+        )
         println(message.toByteArray().toString(NETWORK_CHARSET))
     }
 }

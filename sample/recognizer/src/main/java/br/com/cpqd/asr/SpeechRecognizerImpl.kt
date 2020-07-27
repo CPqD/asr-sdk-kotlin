@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright 2020 CPqD. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License.  You may obtain a copy
+ * of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ ******************************************************************************/
 package br.com.cpqd.asr
 
 import android.util.AndroidRuntimeException
@@ -14,7 +29,7 @@ import br.com.cpqd.asr.model.AsrMessage
 import br.com.cpqd.asr.model.RecognitionError
 import br.com.cpqd.asr.model.RecognitionResult
 import br.com.cpqd.asr.model.UserAgent
-import br.com.cpqd.asr.asr_kotlin.util.Util
+import br.com.cpqd.asr.util.Util
 import com.google.gson.Gson
 import com.neovisionaries.ws.client.*
 import java.io.IOException
@@ -45,11 +60,13 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
 
         factory.verifyHostname = false
 
+        //Cria a instancia de conexão websocket
         wss = factory.createSocket(builder.uri)
             .setUserInfo(builder.credentials[0], builder.credentials[1])
             .addListener(this)
             .addExtension(WebSocketExtension.PERMESSAGE_DEFLATE)
 
+        //Verifica se o modo continuou está habilitado
         isContinuousModeEnable()
 
         thread(start = true, name = "WebSocketConnectionThread", isDaemon = true) {
@@ -85,6 +102,8 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
         }
     }
 
+
+    //Acompanhar o Handshake inicial
     override fun onSendingHandshake(
         websocket: WebSocket?,
         requestLine: String?,
@@ -95,48 +114,45 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
         }
     }
 
+    //Caso a conexão seja estabelecida é enviada a mensagem para a criação da sessão
     override fun onConnected(
         websocket: WebSocket?,
         headers: MutableMap<String, MutableList<String>>?
     ) {
-        Log.d(TAG, "Connected")
         websocket?.sendBinary(AsrMessage(METHOD_CREATE_SESSION, UserAgent.toMap()).toByteArray())
-
     }
+
 
     override fun onBinaryMessage(websocket: WebSocket?, binary: ByteArray?) {
         val responseMessage = AsrMessage(binary)
 
-        Log.d(TAG, responseMessage.toString())
-
+        //Aguarda a sessão ficar no estado IDLE para iniciar o processo de reconhecimento.
         if (responseMessage.mMethod == "RESPONSE" && responseMessage.mHeader["Session-Status"] == "IDLE") {
             websocket?.sendBinary(startRecognition())
         }
 
+        //Aguarda a sessão ficar no estado LISTENING para começar o envio do audio
         if (responseMessage.mMethod == "RESPONSE" && responseMessage.mHeader["Session-Status"] == "LISTENING") {
 
+            //Verifica se a processo de envio já foi iniciado
             if (!isSending) {
-
                 isSending = true
                 thread(start = true, name = "SendAudioThread", isDaemon = true) {
+                    //Permanece em loop até que o ultimo pacote sejá alocado
                     while (!lastPacket) {
+
                         if (query.size > 0) {
-
                             if (query.first().mHeader["LastPacket"] == "true") lastPacket = true
-
                             websocket?.sendBinary(query.first().toByteArray())
-
                             query.removeAt(0)
-
                         }
                     }
                 }
 
             }
-
         }
 
-
+        //Verifica se a messagem contem algum codigo de erro.
         if (responseMessage.mHeader.containsKey("Error-Code")) {
 
             Log.w(TAG, RecognitionError(responseMessage).toString())
@@ -145,7 +161,7 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
 
         }
 
-
+        //Verifica o estatus da sessão e caso necessario devolve a resposta parcial a interface de reconhecimento
         if (responseMessage.mMethod == "RECOGNITION_RESULT" && responseMessage.mHeader["Result-Status"] == "PROCESSING") {
 
             responseMessage.mBody?.toString(NETWORK_CHARSET)?.let {
@@ -160,6 +176,7 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
         }
 
 
+        //Verifica o estatus da sessão e caso necessario devolve a respsota completa
         if (responseMessage.mMethod == "RECOGNITION_RESULT" && responseMessage.mHeader["Result-Status"] == "RECOGNIZED") {
 
             responseMessage.mBody?.toString(NETWORK_CHARSET)?.let {
@@ -171,15 +188,14 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
                 )
             }
 
+            //Caso o modo contínuo esteja desabilitado, a sessão é finalizada e a conexão encerrada
             if (!continuousMode)
                 websocket?.sendBinary(AsrMessage(METHOD_RELEASE_SESSION).toByteArray())
 
-            if (continuousMode && lastPacket) {
+            //Caso o modo contínuo estejá habilitado, a sessão só é finalizada quando o ultimo pacote é enviado
+            if (continuousMode && lastPacket)
                 websocket?.sendBinary(AsrMessage(METHOD_RELEASE_SESSION).toByteArray())
-                Log.d(TAG, "Finalizando modo continuo")
-            }
         }
-
     }
 
 
@@ -196,34 +212,35 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
 
         thread(start = true, name = "AudioBufferThread", isDaemon = true) {
 
-            val buffer = Util.createBufferSizer(
+
+            //Cria o buffer de leitura
+            val readBuffer = Util.createBufferSizer(
                 builder.chunkLength,
                 builder.audioSampleRate,
                 builder.sampleSize.getSampleSize()
             )
 
-            var read = 0
+            var readBytes = 0
 
             try {
 
-                while (read != -1) {
+                while (readBytes != -1) {
 
+                    //Faz a leitura do arquivo de audio e devolve a quantidade de bytes lidos
+                    readBytes = fileAudio.read(readBuffer)
 
-                    read = fileAudio.read(buffer)
-
-
-                    val newBuffer: ByteArray = if (read > 0 && read != buffer.size) {
-                        buffer.copyOf(read)
+                    //Verifica se a quantidade de bytes lidos é igual ao tamanho maximo do buffer de leitura
+                    val buffer: ByteArray = if (readBytes > 0 && readBytes != readBuffer.size) {
+                        readBuffer.copyOf(readBytes)
                     } else {
-                        buffer
+                        readBuffer
                     }
 
 
-                    val bufferToSend = ByteArray(newBuffer.size)
-                    System.arraycopy(newBuffer, 0, bufferToSend, 0, newBuffer.size)
+                    val bufferToSend = ByteArray(buffer.size)
+                    System.arraycopy(buffer, 0, bufferToSend, 0, buffer.size)
 
-
-                    val message = if (read > 0) {
+                    val message = if (readBytes > 0) {
                         AsrMessage(
                             METHOD_SEND_AUDIO,
                             mutableMapOf(
@@ -261,7 +278,7 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
         return AsrMessage(
             METHOD_START_RECOGNITION,
             builder.recognizerConfig.configMap(),
-            builder.recognizerConfigBody.toByteArray(NETWORK_CHARSET)
+            builder.recognizerConfigBody
         ).toByteArray()
     }
 
