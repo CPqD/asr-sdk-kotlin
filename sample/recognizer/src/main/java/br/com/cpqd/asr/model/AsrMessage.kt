@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright 2020 CPqD. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License.  You may obtain a copy
+ * of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ ******************************************************************************/
 package br.com.cpqd.asr.model
 
 import android.util.Log
@@ -18,7 +33,6 @@ import br.com.cpqd.asr.constant.HeaderMethodConstants.Companion.METHOD_START_INP
 import br.com.cpqd.asr.constant.HeaderMethodConstants.Companion.METHOD_START_OF_SPEECH
 import br.com.cpqd.asr.constant.HeaderMethodConstants.Companion.METHOD_START_RECOGNITION
 import br.com.cpqd.asr.constant.HeaderMethodConstants.Companion.TOKEN_REGEX
-import br.com.cpqd.asr.asr_kotlin.exception.*
 import br.com.cpqd.asr.exception.*
 import java.io.ByteArrayOutputStream
 import java.io.IOException
@@ -63,23 +77,31 @@ class AsrMessage private constructor() {
             throw MessageEmptyException("invalid message: unexpected end of message")
         }
 
-        //Convert the Byte Array to String and split into List<String>
-        //We have with it two result, the header encoded UTF-8, and the message body, we can be a binary blob
+        /**
+         * Aplica o charset UTF-8 ao ByteArray depois divide esse array em duas listas distintas
+         * A primeira lista representa o cabeçalho da mensagem, enquanto a segunda lista respresenta o corpo da mensagem
+         */
         val splitHeaderBody: List<String> = message
             .toString(NETWORK_CHARSET)
             .split("\r\n\r\n")
 
-        //The header is always necessary and expected
+        /**
+         * Divide o cabeçalho em uma nova listas
+         */
         val headerLines: List<String> = splitHeaderBody[0].split("\r\n")
 
-        //The message body is optional
         val body: ByteArray = splitHeaderBody[1].toByteArray(NETWORK_CHARSET)
 
-        //The first line is always necessary
+        /**
+         * Divide a primeira linha do cabeçalho
+         */
         val headerFirstLine = headerLines[0].split(" ")
 
-        //We expect the first line of the header to always have three elements
-        //ASR 2.3 START_RECOGNITION
+        /**
+         * São esperados sempre três elemenetos da primeira linha
+         * ASR 2.3 START_RECOGNITION
+         * Testa e verifica se existem os três elementos
+         */
         if (headerFirstLine.size != 3) {
             throw HeaderMissingElementException("invalid message: invalid start line")
         } else {
@@ -88,11 +110,17 @@ class AsrMessage private constructor() {
             mMethod = headerFirstLine[2].trim()
         }
 
-
+        /**
+         * Adiciona o resto do cabeçalho ao um Map<K,V>
+         */
         if (headerLines.size > 1) {
             mHeader = getHeaderFieldValue(headerLines)
         }
 
+
+        /**
+         * Verifica se existe no Map do mHeader a chave "Content-Length" e caso exista a compara o com tamanho do body
+         */
         if (mHeader.containsKey("Content-Length")
             && !mHeader["Content-Length"].isNullOrBlank()
         ) {
@@ -106,7 +134,6 @@ class AsrMessage private constructor() {
         }
     }
 
-
     constructor(
         method: String,
         headerFields: MutableMap<String, String>,
@@ -117,6 +144,20 @@ class AsrMessage private constructor() {
         mMethod = method
         mHeader = headerFields
         mBody = body
+        setHeaderBodySize()
+    }
+
+
+    constructor(
+        method: String,
+        headerFields: MutableMap<String, String>,
+        lmList: LanguageModelList?
+    ) : this() {
+        mProtocol = ASR_PROTOCOL
+        mVersion = ASR_VERSION
+        mMethod = method
+        mHeader = headerFields
+        mBody = populateBody(lmList)
         setHeaderBodySize()
     }
 
@@ -221,6 +262,22 @@ class AsrMessage private constructor() {
         mBody?.let {
             mHeader["Content-Length"] = it.size.toString()
         }
+    }
+
+    private fun populateBody(lmList: LanguageModelList?): ByteArray? {
+        val body = ByteArrayOutputStream()
+
+        lmList?.let { languageModelList ->
+
+            if (languageModelList.uriList.size > 0) {
+                body.write(languageModelList.uriList[0].toByteArray(NETWORK_CHARSET))
+            } else if (languageModelList.grammarList.size > 0) {
+                val grammarList = languageModelList.grammarList[0]
+                mHeader["Content-ID"] = grammarList[0]
+                body.write(grammarList[1].toByteArray(NETWORK_CHARSET))
+            }
+        }
+        return body.toByteArray()
     }
 
 

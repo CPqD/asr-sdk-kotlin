@@ -1,18 +1,34 @@
+/*******************************************************************************
+ * Copyright 2020 CPqD. All Rights Reserved.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not
+ * use this file except in compliance with the License.  You may obtain a copy
+ * of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations under
+ * the License.
+ ******************************************************************************/
 package br.com.cpqd.sample
 
 import android.Manifest
 import android.content.pm.PackageManager
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import br.com.cpqd.asr.SpeechRecognizer
 import br.com.cpqd.asr.SpeechRecognizerResult
 import br.com.cpqd.asr.audio.MicAudioSource
 import br.com.cpqd.asr.constant.ContentTypeConstants
+import br.com.cpqd.asr.model.LanguageModelList
 import br.com.cpqd.asr.model.RecognitionConfig
 import kotlinx.android.synthetic.main.activity_continuous_mode.*
 
@@ -27,6 +43,10 @@ class ContinuousModeActivity : AppCompatActivity(), View.OnTouchListener, Speech
         .waitEndMilis(2000)
         .noInputTimeoutMilis(20000)
         .continuousMode(true)
+        .build()
+
+    private val languageModelList: LanguageModelList = LanguageModelList.Builder()
+        .addFromURI("builtin:slm/general")
         .build()
 
 
@@ -61,10 +81,10 @@ class ContinuousModeActivity : AppCompatActivity(), View.OnTouchListener, Speech
                 audio?.startRecording()
 
                 val speech = SpeechRecognizer.Builder()
-                    .serverURL("ws://10.10.0.101:8025/asr-server/asr")
+                    .serverURL("ws://10.10.0.112:8025/asr-server/asr")
                     .credentials("felipe", "felipe.cpqd")
                     .recognizerResult(this)
-                    .config(recognitionConfig, "builtin:slm/general")
+                    .config(recognitionConfig, languageModelList)
                     .build()
 
                 audio?.let { speech.recognizer(it, ContentTypeConstants.TYPE_AUDIO_RAW) }
