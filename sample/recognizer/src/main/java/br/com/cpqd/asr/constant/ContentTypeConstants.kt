@@ -15,6 +15,10 @@
  ******************************************************************************/
 package br.com.cpqd.asr.constant
 
+/**
+ * Represents the constants of the type of content necessary for communication
+ *
+ */
 class ContentTypeConstants {
     companion object {
         const val TYPE_URI_LIST = "text/uri-list"

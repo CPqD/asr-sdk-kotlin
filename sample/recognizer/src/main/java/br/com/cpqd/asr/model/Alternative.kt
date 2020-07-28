@@ -15,4 +15,12 @@
  ******************************************************************************/
 package br.com.cpqd.asr.model
 
+/**
+ * Represents a alternative sentence or speech segment result of the recognition process.
+ *
+ * @property text the recognized text.
+ * @property words the words aligment list.
+ * @property score the the recognition confidence score.
+ * @property lm the languagem model considered in the recognition.
+ */
 data class Alternative (val text: String, val words: List<Word>, val score: Int, val lm: String)

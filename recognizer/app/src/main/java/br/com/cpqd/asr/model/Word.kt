@@ -15,4 +15,12 @@
  ******************************************************************************/
 package br.com.cpqd.asr.model
 
+/**
+ * Represents the word of the recognition process
+ *
+ * @property text the word in string format
+ * @property score the score given by the recognition process
+ * @property startTime the audio position when the word was detected (in secs).
+ * @property endTime the audio position when the word has ended (in seconds).
+ */
 data class Word(val text: String, val score: Int, val startTime: Double, val endTime: Double)

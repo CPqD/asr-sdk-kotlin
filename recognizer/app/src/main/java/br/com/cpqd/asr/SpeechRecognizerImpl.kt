@@ -37,18 +37,38 @@ import java.util.*
 import kotlin.concurrent.thread
 
 
+/**
+ *  Class that implements the communication with the asr server
+ *
+ * @property builder
+ */
 class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
     WebSocketListenerAsr {
 
-
+    /**
+     * Log tag.
+     */
     private val TAG: String = SpeechRecognizerImpl::class.java.simpleName
 
-    private var query = Collections.synchronizedList(LinkedList<AsrMessage>())
+    /**
+     * Queue with the message packets to be sent to the recognition process.
+     * Synchronized List
+     */
+    private var queue = Collections.synchronizedList(LinkedList<AsrMessage>())
 
+    /**
+     * Flag to indicate if the sending process started
+     */
     private var isSending: Boolean = false
 
+    /**
+     * Flag to indicate if the last packet has been placed in the send queue
+     */
     private var lastPacket = false
 
+    /**
+     * Flag to indicate if the continuous mode is enabled
+     */
     private var continuousMode = false
 
     private val wss: WebSocket
@@ -60,13 +80,13 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
 
         factory.verifyHostname = false
 
-        //Cria a instancia de conexão websocket
+        // Create the websocket connection instance
         wss = factory.createSocket(builder.uri)
             .setUserInfo(builder.credentials[0], builder.credentials[1])
             .addListener(this)
             .addExtension(WebSocketExtension.PERMESSAGE_DEFLATE)
 
-        //Verifica se o modo continuou está habilitado
+        // Checks whether continuous mode is enabled
         isContinuousModeEnable()
 
         thread(start = true, name = "WebSocketConnectionThread", isDaemon = true) {
@@ -103,7 +123,6 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
     }
 
 
-    //Acompanhar o Handshake inicial
     override fun onSendingHandshake(
         websocket: WebSocket?,
         requestLine: String?,
@@ -114,7 +133,7 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
         }
     }
 
-    //Caso a conexão seja estabelecida é enviada a mensagem para a criação da sessão
+    // If the connection is established, a message is sent to create the session
     override fun onConnected(
         websocket: WebSocket?,
         headers: MutableMap<String, MutableList<String>>?
@@ -126,25 +145,25 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
     override fun onBinaryMessage(websocket: WebSocket?, binary: ByteArray?) {
         val responseMessage = AsrMessage(binary)
 
-        //Aguarda a sessão ficar no estado IDLE para iniciar o processo de reconhecimento.
+        // Waits for the session to be in the IDLE state to start the recognition process.
         if (responseMessage.mMethod == "RESPONSE" && responseMessage.mHeader["Session-Status"] == "IDLE") {
             websocket?.sendBinary(startRecognition())
         }
 
-        //Aguarda a sessão ficar no estado LISTENING para começar o envio do audio
+        // Waits for the session to be in the LISTENING state to start sending the audio.
         if (responseMessage.mMethod == "RESPONSE" && responseMessage.mHeader["Session-Status"] == "LISTENING") {
 
-            //Verifica se a processo de envio já foi iniciado
+            // Checks whether the submission process has already started
             if (!isSending) {
                 isSending = true
                 thread(start = true, name = "SendAudioThread", isDaemon = true) {
-                    //Permanece em loop até que o ultimo pacote sejá alocado
+                    // Stay in loop until the last packet is allocated
                     while (!lastPacket) {
 
-                        if (query.size > 0) {
-                            if (query.first().mHeader["LastPacket"] == "true") lastPacket = true
-                            websocket?.sendBinary(query.first().toByteArray())
-                            query.removeAt(0)
+                        if (queue.size > 0) {
+                            if (queue.first().mHeader["LastPacket"] == "true") lastPacket = true
+                            websocket?.sendBinary(queue.first().toByteArray())
+                            queue.removeAt(0)
                         }
                     }
                 }
@@ -152,7 +171,7 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
             }
         }
 
-        //Verifica se a messagem contem algum codigo de erro.
+        // Checks if the message contains any error code.
         if (responseMessage.mHeader.containsKey("Error-Code")) {
 
             Log.w(TAG, RecognitionError(responseMessage).toString())
@@ -161,7 +180,7 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
 
         }
 
-        //Verifica o estatus da sessão e caso necessario devolve a resposta parcial a interface de reconhecimento
+        // Checks the status of the session and, if necessary, returns the partial response
         if (responseMessage.mMethod == "RECOGNITION_RESULT" && responseMessage.mHeader["Result-Status"] == "PROCESSING") {
 
             responseMessage.mBody?.toString(NETWORK_CHARSET)?.let {
@@ -176,7 +195,7 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
         }
 
 
-        //Verifica o estatus da sessão e caso necessario devolve a respsota completa
+        // Check the session status and, if necessary, return the complete response
         if (responseMessage.mMethod == "RECOGNITION_RESULT" && responseMessage.mHeader["Result-Status"] == "RECOGNIZED") {
 
             responseMessage.mBody?.toString(NETWORK_CHARSET)?.let {
@@ -188,17 +207,23 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
                 )
             }
 
-            //Caso o modo contínuo esteja desabilitado, a sessão é finalizada e a conexão encerrada
+            // If continuous mode is disabled, the session is ended and the connection is closed
             if (!continuousMode)
                 websocket?.sendBinary(AsrMessage(METHOD_RELEASE_SESSION).toByteArray())
 
-            //Caso o modo contínuo estejá habilitado, a sessão só é finalizada quando o ultimo pacote é enviado
+            // If continuous mode is enabled, the session is only ended when the last packet is sent
             if (continuousMode && lastPacket)
                 websocket?.sendBinary(AsrMessage(METHOD_RELEASE_SESSION).toByteArray())
         }
     }
 
 
+    /**
+     * Reads the Audio Source and allocates it to the queue
+     *
+     * @param fileAudio
+     * @param contentType
+     */
     fun recognizer(fileAudio: AudioSource, contentType: String) {
 
         if (contentType.isBlank() || !(
@@ -213,7 +238,7 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
         thread(start = true, name = "AudioBufferThread", isDaemon = true) {
 
 
-            //Cria o buffer de leitura
+            // Creates the read buffer
             val readBuffer = Util.createBufferSizer(
                 builder.chunkLength,
                 builder.audioSampleRate,
@@ -226,10 +251,10 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
 
                 while (readBytes != -1) {
 
-                    //Faz a leitura do arquivo de audio e devolve a quantidade de bytes lidos
+                    // Reads the audio file and returns the number of bytes read.
                     readBytes = fileAudio.read(readBuffer)
 
-                    //Verifica se a quantidade de bytes lidos é igual ao tamanho maximo do buffer de leitura
+                    // Checks if the number of bytes read is equal to the maximum size of the read buffer
                     val buffer: ByteArray = if (readBytes > 0 && readBytes != readBuffer.size) {
                         readBuffer.copyOf(readBytes)
                     } else {
@@ -258,7 +283,7 @@ class SpeechRecognizerImpl(private val builder: SpeechRecognizer.Builder) :
                             )
                         )
                     }
-                    query.add(message)
+                    queue.add(message)
                 }
 
             } catch (e: IOException) {

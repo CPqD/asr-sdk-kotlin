@@ -61,7 +61,7 @@ class FileAudioActivity : AppCompatActivity(), View.OnClickListener, SpeechRecog
         val audio = FileAudioSource(applicationContext.assets.open(fileAudio))
 
         val speech = SpeechRecognizer.Builder()
-            .serverURL("ws://10.10.0.112:8025/asr-server/asr")
+            .serverURL("wss://speech.cpqd.com.br/asr/ws/v2/recognize/8k")
             .credentials("felipe", "felipe.cpqd")
             .recognizerResult(this)
             .config(recognitionConfig, languageModelList)

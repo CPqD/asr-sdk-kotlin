@@ -15,9 +15,18 @@
  ******************************************************************************/
 package br.com.cpqd.asr.audio
 
+/**
+ * Represents the audio encoding
+ *
+ * @property sampleSize
+ */
 
 enum class AudioEncoding(private val sampleSize: Int) {
 
+    /**
+     * audio sample size in bits
+     *
+     */
     LINEAR16(16);
 
     fun getSampleSize(): Int {

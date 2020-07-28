@@ -81,7 +81,7 @@ class ContinuousModeActivity : AppCompatActivity(), View.OnTouchListener, Speech
                 audio?.startRecording()
 
                 val speech = SpeechRecognizer.Builder()
-                    .serverURL("ws://10.10.0.112:8025/asr-server/asr")
+                    .serverURL("wss://speech.cpqd.com.br/asr/ws/v2/recognize/8k")
                     .credentials("felipe", "felipe.cpqd")
                     .recognizerResult(this)
                     .config(recognitionConfig, languageModelList)

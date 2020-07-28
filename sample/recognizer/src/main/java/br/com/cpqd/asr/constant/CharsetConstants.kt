@@ -17,9 +17,15 @@ package br.com.cpqd.asr.constant
 
 import java.nio.charset.Charset
 
+/**
+ * Represents the charset used in coding
+ *
+ */
 class CharsetConstants {
     companion object {
-
-        val NETWORK_CHARSET : Charset = Charset.forName("UTF-8")
+        /**
+         * Chartset UTF-8
+         */
+        val NETWORK_CHARSET: Charset = Charset.forName("UTF-8")
     }
 }

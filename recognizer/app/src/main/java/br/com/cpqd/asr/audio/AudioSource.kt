@@ -15,12 +15,32 @@
  ******************************************************************************/
 package br.com.cpqd.asr.audio
 
+/**
+ * Represents an audio input source for the recognition process.
+ *
+ */
 
 interface AudioSource {
 
-    fun read(byte: ByteArray) : Int
+    /**
+     * Reads data from the source into an array of bytes. The number of bytes
+     * actually read is returned as an integer. The method blocks until at least
+     * 1 byte of input is available, end of the stream has been detected
+     *
+     * @param byte the buffer into which the data is read.
+     * @return the total number of bytes read into the buffer, or -1 if there is
+     * no more data because the end of the stream has been reached.
+     */
+    fun read(byte: ByteArray): Int
 
+    /**
+     * Closes the source and releases any system resources associated.
+     */
     fun close()
 
+    /**
+     * Informs that the audio is finished. Forces any buffered output bytes to
+     * be written out.
+     */
     fun finish()
 }

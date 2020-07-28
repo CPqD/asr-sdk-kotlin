@@ -15,6 +15,10 @@
  ******************************************************************************/
 package br.com.cpqd.asr.constant
 
+/**
+ * Represent the constants avaliable in the header of the asr message
+ *
+ */
 class HeaderMethodConstants {
     companion object {
 

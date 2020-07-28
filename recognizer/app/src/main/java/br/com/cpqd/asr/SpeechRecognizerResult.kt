@@ -15,6 +15,15 @@
  ******************************************************************************/
 package br.com.cpqd.asr
 
+/**
+ * Asynchronous callback interface to receive speech recognition events from the server.
+ *
+ */
 interface SpeechRecognizerResult {
+    /**
+     * Called when the server generates a recognition result.
+     *
+     * @param result the recognition result.
+     */
     fun onResult(result: String)
 }

@@ -15,9 +15,21 @@
  ******************************************************************************/
 package br.com.cpqd.asr.model
 
+/**
+ * Contains information about an error in the recognition process.
+ *
+ * @param message
+ */
 class RecognitionError(message: AsrMessage) {
 
+    /**
+     * the recognition error code.
+     */
     private var errorCode: String? = null
+
+    /**
+     * the error message.
+     */
     private var errorMessage: String? = null
 
     init {

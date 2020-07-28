@@ -17,6 +17,12 @@ package br.com.cpqd.asr.audio
 
 import java.io.InputStream
 
+/**
+ * AudioSource implementation for a file audio source.
+ *
+ * @property inputStream the byte stream to be read
+ */
+
 class FileAudioSource(private val inputStream: InputStream) : AudioSource {
 
 

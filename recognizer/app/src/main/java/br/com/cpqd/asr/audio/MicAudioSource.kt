@@ -19,24 +19,57 @@ import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.util.Log
-import java.lang.IllegalStateException
+
+/**
+ * Audio source implementation for microphone input.
+ *
+ * @constructor
+ * create an instance based on the sample rate provided
+ *
+ * @param sampleRate
+ */
 
 class MicAudioSource(sampleRate: Int) : AudioSource {
 
+    /**
+     * Log tag.
+     */
     private val TAG: String = MicAudioSource::class.java.simpleName
 
+    /**
+     * Number of audio input channels.
+     */
     private val RECORDER_NUMBER_OF_CHANNELS: Int = AudioFormat.CHANNEL_IN_MONO
 
+
+    /**
+     * Audio format.
+     */
     private val RECORDER_AUDIO_FORMAT: Int = AudioFormat.ENCODING_PCM_16BIT
 
+    /**
+     * Audio source.
+     */
     private val RECORDER_AUDIO_SOURCE: Int = MediaRecorder.AudioSource.MIC
 
+    /**
+     * Default sample rate
+     */
     private var recorderSampleRate: Int = 8000
 
+    /**
+     * Audio record.
+     */
     private var recorder: AudioRecord? = null
 
+    /**
+     * Flag to indicate if is to stop the capture.
+     */
     private var stopped: Boolean = false
 
+    /**
+     * Flag to indicate if the capture started.
+     */
     private var started: Boolean = false
 
     init {

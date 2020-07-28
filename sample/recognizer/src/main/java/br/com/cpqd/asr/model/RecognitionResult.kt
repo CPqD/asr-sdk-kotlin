@@ -15,6 +15,17 @@
  ******************************************************************************/
 package br.com.cpqd.asr.model
 
+/**
+ * Represents the final result of the recognition process.
+ *
+ * @property alternatives the list of recognition result alternative sentences.
+ * @property segmentIndex the speech segment index.
+ * @property lastSegment indicates if this is the last recognized segment.
+ * @property finalResult indicates if this is the final recognized result.
+ * @property startTime the audio position when the speech start was detected (in secs).
+ * @property endTime the audio position when the speech stop was detected (in secs).
+ * @property resultStatus the recognition result
+ */
 data class RecognitionResult (val alternatives : List<Alternative>, val segmentIndex: Int, val lastSegment: Boolean, val finalResult: Boolean, val startTime: Double, val endTime: Double, val resultStatus: String) {
 
     fun getString(): String {

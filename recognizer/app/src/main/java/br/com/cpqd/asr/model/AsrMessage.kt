@@ -16,9 +16,9 @@
 package br.com.cpqd.asr.model
 
 import android.util.Log
-import br.com.cpqd.asr.constant.ByteArrayContants.Companion.COLON
-import br.com.cpqd.asr.constant.ByteArrayContants.Companion.CRLF
-import br.com.cpqd.asr.constant.ByteArrayContants.Companion.SPACE
+import br.com.cpqd.asr.constant.ByteArrayConstants.Companion.COLON
+import br.com.cpqd.asr.constant.ByteArrayConstants.Companion.CRLF
+import br.com.cpqd.asr.constant.ByteArrayConstants.Companion.SPACE
 import br.com.cpqd.asr.constant.CharsetConstants.Companion.NETWORK_CHARSET
 import br.com.cpqd.asr.constant.HeaderMethodConstants.Companion.ASR_PROTOCOL
 import br.com.cpqd.asr.constant.HeaderMethodConstants.Companion.ASR_VERSION
@@ -37,12 +37,27 @@ import br.com.cpqd.asr.exception.*
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 
-
+/**
+ * <p>Model class of the messages exchanged between client and ASR server.</p>
+ * <p>A message looks roughly like this:</p>
+ * <p><tt>
+ * &nbsp;&nbsp;&nbsp;&nbsp;ASR 3.0 METHOD(CRLF)<br>
+ * &nbsp;&nbsp;&nbsp;&nbsp;field-name: field-value(CRLF)<br>
+ * &nbsp;&nbsp;&nbsp;&nbsp;(CRLF)<br>
+ * &nbsp;&nbsp;&nbsp;&nbsp;(body if any)
+ * </tt></p>
+ */
 class AsrMessage private constructor() {
 
-
+    /**
+     * Log tag
+     */
     private val TAG: String = AsrMessage::class.java.simpleName
 
+    /**
+     * Protocol of this message.
+     * It should be <tt>ASR</tt>.
+     */
     private var mProtocol: String? = null
         set(value) {
             if (ASR_PROTOCOL == value) {
@@ -52,6 +67,10 @@ class AsrMessage private constructor() {
             }
         }
 
+    /**
+     * Version of the protocol of this message.
+     * It should be something like <tt>2.3</tt>.
+     */
     private var mVersion: String? = null
         set(value) {
             if (ASR_VERSION == value) {
@@ -61,47 +80,56 @@ class AsrMessage private constructor() {
             }
         }
 
+    /**
+     * Method of this message.
+     * It should be one of the {@code METHOD_*} values defined in this class.
+     */
     var mMethod: String? = null
         set(value) {
             isValidMethodOrNotNull(value)
             field = value
         }
 
+    /**
+     * Map of header fields names and values of this message.
+     */
     var mHeader = mutableMapOf<String, String>()
 
+    /**
+     * Body of this message.
+     * It may be {@code null}, indicating there is no body.
+     */
     var mBody: ByteArray? = null
 
+    /**
+     * Constructs an ASR message from serialized octets.
+     * The ASR protocol does not define any specific character encoding,
+     * so this Android library implementation reads these octets as UTF-8 encoded text.
+     *
+     * @param message octet-serialized ASR message.
+     */
     constructor(message: ByteArray?) : this() {
 
         if (message == null || message.isEmpty()) {
             throw MessageEmptyException("invalid message: unexpected end of message")
         }
 
-        /**
-         * Aplica o charset UTF-8 ao ByteArray depois divide esse array em duas listas distintas
-         * A primeira lista representa o cabeçalho da mensagem, enquanto a segunda lista respresenta o corpo da mensagem
-         */
+
+        // Apply the charset to the ByteArray and split it into two string
+        // The first string represents the message header and the last one represent the message body
         val splitHeaderBody: List<String> = message
             .toString(NETWORK_CHARSET)
             .split("\r\n\r\n")
 
-        /**
-         * Divide o cabeçalho em uma nova listas
-         */
+        // Convert the heaader into a List of String. Each line represents a parameter
         val headerLines: List<String> = splitHeaderBody[0].split("\r\n")
 
         val body: ByteArray = splitHeaderBody[1].toByteArray(NETWORK_CHARSET)
 
-        /**
-         * Divide a primeira linha do cabeçalho
-         */
+        // Split "ASR 2.3 METHOD" into three tokens.
         val headerFirstLine = headerLines[0].split(" ")
 
-        /**
-         * São esperados sempre três elemenetos da primeira linha
-         * ASR 2.3 START_RECOGNITION
-         * Testa e verifica se existem os três elementos
-         */
+        // Check if message line matches "ASR 2.3 METHOD" format.
         if (headerFirstLine.size != 3) {
             throw HeaderMissingElementException("invalid message: invalid start line")
         } else {
@@ -110,17 +138,13 @@ class AsrMessage private constructor() {
             mMethod = headerFirstLine[2].trim()
         }
 
-        /**
-         * Adiciona o resto do cabeçalho ao um Map<K,V>
-         */
+        //Convert the header list into a Map<K,V>
         if (headerLines.size > 1) {
             mHeader = getHeaderFieldValue(headerLines)
         }
 
 
-        /**
-         * Verifica se existe no Map do mHeader a chave "Content-Length" e caso exista a compara o com tamanho do body
-         */
+        // Valid the message body
         if (mHeader.containsKey("Content-Length")
             && !mHeader["Content-Length"].isNullOrBlank()
         ) {
@@ -134,6 +158,13 @@ class AsrMessage private constructor() {
         }
     }
 
+    /**
+     * Constructs an ASR message by setting values to its variables directly.
+     *
+     * @param method a valid method. It should be one of the {@code METHOD_*} values defined in this class.
+     * @param headerFields a map of header fields names and values.
+     * @param body a payload body.
+     */
     constructor(
         method: String,
         headerFields: MutableMap<String, String>,
@@ -147,7 +178,13 @@ class AsrMessage private constructor() {
         setHeaderBodySize()
     }
 
-
+    /**
+     * Constructs an ASR message by setting values to its variables directly.
+     *
+     * @param method a valid method. It should be one of the {@code METHOD_*} values defined in this class.
+     * @param headerFields a map of header fields names and values.
+     * @param lmList the language model needed for recognition
+     */
     constructor(
         method: String,
         headerFields: MutableMap<String, String>,
@@ -161,13 +198,23 @@ class AsrMessage private constructor() {
         setHeaderBodySize()
     }
 
-
+    /**
+     * Constructs an ASR message by setting values to its variables directly.
+     *
+     * @param method a valid method. It should be one of the {@code METHOD_*} values defined in this class.
+     */
     constructor(method: String) : this() {
         mProtocol = ASR_PROTOCOL
         mVersion = ASR_VERSION
         mMethod = method
     }
 
+    /**
+     * Constructs an ASR message by setting values to its variables directly.
+     *
+     * @param method a valid method. It should be one of the {@code METHOD_*} values defined in this class.
+     * @param headerFields a map of header fields names and values.
+     */
     constructor(method: String, headerFields: MutableMap<String, String>) : this() {
         mProtocol = ASR_PROTOCOL
         mVersion = ASR_VERSION
@@ -175,7 +222,13 @@ class AsrMessage private constructor() {
         mHeader = headerFields
     }
 
-
+    /**
+     * Create a <k, v> map based on the header values
+     * Should be like this "field-name" : "field-value"
+     *
+     * @param headerLines configuration header in json format
+     * @return Mutable Map<String, String>
+     */
     private fun getHeaderFieldValue(headerLines: List<String>): MutableMap<String, String> {
         val listFields = mutableMapOf<String, String>()
 
@@ -191,6 +244,11 @@ class AsrMessage private constructor() {
         return listFields
     }
 
+    /**
+     *  Evaluates whether the given method is a valid ASR method.
+     *
+     * @param method the method to be evaluated.
+     */
     private fun isValidMethodOrNotNull(method: String?) {
 
         if (method.isNullOrBlank() || !(method.contentEquals(METHOD_CANCEL_RECOGNITION)
@@ -208,7 +266,11 @@ class AsrMessage private constructor() {
         }
     }
 
-
+    /**
+     * Serializes this ASR message as a byte array.
+     *
+     * @return this ASR message serialized as a byte array.
+     */
     fun toByteArray(): ByteArray {
 
         try {
@@ -258,12 +320,22 @@ class AsrMessage private constructor() {
 
     }
 
+    /**
+     * Adds the field "Content-Length" to the header based in the body size
+     *
+     */
     private fun setHeaderBodySize() {
         mBody?.let {
             mHeader["Content-Length"] = it.size.toString()
         }
     }
 
+    /**
+     * Populate the body with the language model
+     *
+     * @param lmList the language model needed for recognition
+     * @return
+     */
     private fun populateBody(lmList: LanguageModelList?): ByteArray? {
         val body = ByteArrayOutputStream()
 

@@ -15,6 +15,9 @@
  ******************************************************************************/
 package br.com.cpqd.asr.model
 
+/**
+ * Represents the recognition process configuration parameters.
+ */
 class RecognitionConfig {
 
     private var map = mutableMapOf<String, String>()
@@ -173,6 +176,10 @@ class RecognitionConfig {
         return str
     }
 
+    /**
+     * The Builder object.
+     *
+     */
     class Builder {
 
         private var accept: String? = null
@@ -358,6 +365,11 @@ class RecognitionConfig {
             return this
         }
 
+        /**
+         * Creates a new instance of the RecognitionConfig object.
+         *
+         * @return a RecognitionConfig instance.
+         */
         fun build(): RecognitionConfig {
             val config = RecognitionConfig()
             config.setAccept(accept)

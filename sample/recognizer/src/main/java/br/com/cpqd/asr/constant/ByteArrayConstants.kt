@@ -17,13 +17,26 @@ package br.com.cpqd.asr.constant
 
 import br.com.cpqd.asr.constant.CharsetConstants.Companion.NETWORK_CHARSET
 
-class ByteArrayContants {
+/**
+ * Represents the constants used for the creation the array
+ *
+ */
+class ByteArrayConstants {
     companion object {
 
+        /**
+         * UTF-8 (hex) 0x20
+         */
         val SPACE: ByteArray = " ".toByteArray(NETWORK_CHARSET)
 
+        /**
+         * UTF-8 (hex) 0x0D 0x0A
+         */
         val CRLF: ByteArray = "\r\n".toByteArray(NETWORK_CHARSET)
 
+        /**
+         * UTF-8 (hex) 0x3A
+         */
         val COLON: ByteArray = ":".toByteArray(NETWORK_CHARSET)
 
     }

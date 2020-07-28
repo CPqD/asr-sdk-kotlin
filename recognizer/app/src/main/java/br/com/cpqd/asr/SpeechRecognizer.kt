@@ -22,29 +22,63 @@ import br.com.cpqd.asr.model.LanguageModelList
 import br.com.cpqd.asr.model.RecognitionConfig
 import java.net.URI
 
+/**
+ * Claas that
+ *
+ */
 class SpeechRecognizer {
-
 
     class Builder {
 
+        /**
+         * ASR URI
+         */
         var uri: URI? = null
 
+        /**
+         * Credentials user and password
+         *
+         */
         var credentials: Array<String> = arrayOf()
 
+        /**
+         * the audio sample rate.
+         */
         var audioSampleRate: Int = 8000
 
+        /**
+         * the audio packets length.
+         */
         var chunkLength: Int = 250
 
+        /**
+         * the timeout value (in seconds).
+         */
         var maxWaitSeconds: Int = 10
 
+        /**
+         * the audio sample size in bits.
+         */
         var sampleSize: AudioEncoding = AudioEncoding.LINEAR16
 
-        var recognizerResult : SpeechRecognizerResult? = null
+        /**
+         * Interface for complete result
+         */
+        var recognizerResult: SpeechRecognizerResult? = null
 
+        /**
+         * Interface for partial result
+         */
         var recognizerPartialResult: SpeechRecognizePartialResult? = null
 
+        /**
+         * Service configuration options
+         */
         var recognizerConfig: RecognitionConfig = RecognitionConfig()
 
+        /**
+         *
+         */
         var recognizerConfigBody: LanguageModelList? = null
 
         fun serverURL(url: String): Builder {
