@@ -46,7 +46,7 @@ val recognitionConfig: RecognitionConfig = RecognitionConfig.Builder()
         .build()
 ```
 
-A por fim criaremos a instância de reconhecimento de fala
+E por fim criaremos a instância de reconhecimento de fala
 
 ```kotlin
 val speech = SpeechRecognizer.Builder()
