@@ -38,6 +38,10 @@ class PartialResultActivity : AppCompatActivity(), View.OnTouchListener, SpeechR
 
     private val PERMISSION_REQUEST_RECORD_AUDIO: Int = 1
 
+    private val user = "foo"
+
+    private val password = "bar"
+
     private val recognitionConfig: RecognitionConfig = RecognitionConfig.Builder()
         .accept(ContentTypeConstants.TYPE_JSON)
         .contentType(ContentTypeConstants.TYPE_URI_LIST)
@@ -84,7 +88,7 @@ class PartialResultActivity : AppCompatActivity(), View.OnTouchListener, SpeechR
 
                 val speech = SpeechRecognizer.Builder()
                     .serverURL("wss://speech.cpqd.com.br/asr/ws/v2/recognize/8k")
-                    .credentials("felipe", "felipe.cpqd")
+                    .credentials(user, password)
                     .recognizerResult(this)
                     .recognizerPartialResult(this)
                     .config(recognitionConfig, languageModelList)

@@ -32,10 +32,15 @@ import br.com.cpqd.asr.model.LanguageModelList
 import br.com.cpqd.asr.model.RecognitionConfig
 import kotlinx.android.synthetic.main.activity_continuous_mode.*
 
+
+
 class ContinuousModeActivity : AppCompatActivity(), View.OnTouchListener, SpeechRecognizerResult {
 
     private val PERMISSION_REQUEST_RECORD_AUDIO: Int = 1
 
+    private val user = "foo"
+
+    private val password = "bar"
 
     private val recognitionConfig: RecognitionConfig = RecognitionConfig.Builder()
         .accept(ContentTypeConstants.TYPE_JSON)
@@ -52,6 +57,7 @@ class ContinuousModeActivity : AppCompatActivity(), View.OnTouchListener, Speech
 
     private var audio: MicAudioSource? = null
 
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_continuous_mode)
@@ -82,7 +88,7 @@ class ContinuousModeActivity : AppCompatActivity(), View.OnTouchListener, Speech
 
                 val speech = SpeechRecognizer.Builder()
                     .serverURL("wss://speech.cpqd.com.br/asr/ws/v2/recognize/8k")
-                    .credentials("felipe", "felipe.cpqd")
+                    .credentials(user, password)
                     .recognizerResult(this)
                     .config(recognitionConfig, languageModelList)
                     .build()

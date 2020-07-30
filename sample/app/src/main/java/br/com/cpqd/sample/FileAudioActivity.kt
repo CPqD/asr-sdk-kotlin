@@ -30,7 +30,12 @@ import br.com.cpqd.asr.model.RecognitionConfig
 import kotlinx.android.synthetic.main.activity_file_audio.*
 
 class FileAudioActivity : AppCompatActivity(), View.OnClickListener, SpeechRecognizerResult {
+
     private var fileAudio: String = "bank_transfira_8k.wav"
+
+    private val user = "foo"
+
+    private val password = "bar"
 
     private val recognitionConfig: RecognitionConfig = RecognitionConfig.Builder()
         .accept(TYPE_JSON)
@@ -62,7 +67,7 @@ class FileAudioActivity : AppCompatActivity(), View.OnClickListener, SpeechRecog
 
         val speech = SpeechRecognizer.Builder()
             .serverURL("wss://speech.cpqd.com.br/asr/ws/v2/recognize/8k")
-            .credentials("felipe", "felipe.cpqd")
+            .credentials(user, password)
             .recognizerResult(this)
             .config(recognitionConfig, languageModelList)
             .build()
